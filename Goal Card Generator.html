@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>目標生成集點卡</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      text-align: center;
+      background-color: #eceae6;
+      padding: 20px;
+    }
+    canvas {
+      border: 2px solid #ccc;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      display: block;
+      margin: 0 auto;
+    }
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 80%;
+      max-width: 300px;
+    }
+    button {
+      background-color: #00b5d8;
+      color: white;
+      cursor: pointer;
+    }
+    .description {
+      max-width: 400px;
+      margin: 10px auto 20px;
+      font-size: 14px;
+      color: #333;
+      line-height: 1.5;
+      text-align: justify;
+      overflow: visible;
+      white-space: normal;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h2>目標生成集點卡</h2>
+  <div class="description">
+    產生一張鼓勵的目標集點卡記錄你的每一步。格數採每週5天共4週設計20格，計畫一個月內可以達成目標。
+    請依欄位填入文字，選擇符合目標的圖片上傳，產生卡片可供4*6吋列印。
+    歡迎轉貼(請註明來源)，朝更好的自己更近一步!
+  </div>
+  <div class="controls">
+    <input type="text" id="goal" placeholder="目標">
+    <input type="text" id="yourname" placeholder="送給誰">
+    <input type="text" id="message" placeholder="想說的話">
+    <input type="text" id="award" placeholder="達成獎勵">
+    <input type="text" id="myname" placeholder="我是誰">
+    <select id="textColor">
+      <option value="#000000">黑色文字</option>
+      <option value="#FFFFFF">白色文字</option>
+    </select>
+    <input type="file" id="bgImage" accept="image/*">
+    <button onclick="generateCard(1)">產生卡片</button>
+  </div>
+
+  <canvas id="cardCanvas" width="400" height="600"></canvas>
+  <br>
+  <button onclick="downloadCard()">下載卡片</button>
+
+  <div class="footer">© 2025 MZW</div>
+
+  <script>
+    let bgImg = null;
+    document.getElementById("bgImage").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        bgImg = new Image();
+        bgImg.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function generateCard(scale = 1) {
+      const canvas = document.getElementById("cardCanvas");
+      canvas.width = 400 * scale;
+      canvas.height = 600 * scale;
+      const ctx = canvas.getContext("2d");
+
+      const goal = document.getElementById("goal").value;
+      const yourname = document.getElementById("yourname").value;
+      const message = document.getElementById("message").value;
+      const award = document.getElementById("award").value;
+      const myname = document.getElementById("myname").value;
+      const textColor = document.getElementById("textColor").value;
+      const date = new Date().toISOString().slice(0, 10);
+
+      if (bgImg && bgImg.complete) {
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      ctx.fillStyle = textColor;
+      ctx.textAlign = "center";
+      ctx.font = `bold ${35 * scale}px 'Noto Sans TC'`;
+      ctx.fillText(goal, canvas.width / 2, 100 * scale);
+
+      const radius = 35 * scale;
+      const cols = 5, rows = 4;
+      const gapX = radius * 0.15;
+      const gapY = radius * 0.15;
+      const startX = (canvas.width - (cols * 2 * radius + (cols - 1) * gapX)) / 2;
+      const startY = 150 * scale;
+
+      ctx.fillStyle = textColor === "#000000" ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)";
+      for (let i = 0; i < 20; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const cx = startX + radius + col * (2 * radius + gapX);
+        const cy = startY + row * (2 * radius + gapY);
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      let y = startY + 285 * scale;
+      ctx.fillStyle = textColor;
+      ctx.font = `${16 * scale}px 'Noto Sans TC'`;
+      ctx.fillText("▶︎ " + yourname, canvas.width / 2, y);
+
+      y += 1.75 * 16 * scale;
+      ctx.font = `italic ${16 * scale}px 'Noto Sans TC'`;
+      ctx.fillText("「" + message + "」", canvas.width / 2, y);
+
+      y += 1.75 * 16 * scale;
+      ctx.font = `${16 * scale}px 'Noto Sans TC'`;
+      ctx.fillText("★ " + award + " ★", canvas.width / 2, y);
+
+      y += 1.5 * 16 * scale;
+      ctx.fillText(myname + " ◀︎", canvas.width / 2, y);
+
+      y += 1.5 * 16 * scale;
+      ctx.fillText(date, canvas.width / 2, y);
+
+      y += 2.5 * 16 * scale;
+      ctx.fillText("© 2025 MZW", canvas.width / 2, y);
+    }
+
+    function downloadCard() {
+      generateCard(3);
+      setTimeout(() => {
+        const link = document.createElement("a");
+        link.download = "集點卡.png";
+        link.href = document.getElementById("cardCanvas").toDataURL();
+        link.click();
+        generateCard(1);
+      }, 100);
+    }
+  </script>
+</body>
+</html>
